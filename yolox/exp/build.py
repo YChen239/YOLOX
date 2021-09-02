@@ -31,7 +31,7 @@ def get_exp_by_name(exp_name):
         "yolov3": "yolov3.py",
     }
     filename = filedict[exp_name]
-    exp_path = os.path.join(yolox_path, "exps", "default", filename)
+    exp_path = os.path.join("../gdrive/MyDrive/data/Yolox", "exps", filename)
     return get_exp_by_file(exp_path)
 
 
