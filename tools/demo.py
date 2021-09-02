@@ -218,27 +218,28 @@ def imageflow_demo(predictor, vis_folder, current_time, args):
         save_path = os.path.join(save_folder, "camera.mp4")
     logger.info(f"video save_path is {save_path}")
     vid_writer = cv2.VideoWriter(
-        save_path, cv2.VideoWriter_fourcc(*"mp4v"), fps, (int(width), int(height))
+        save_path, cv2.VideoWriter_fourcc(*"mp4v"), fps/3, (int(width), int(height))
     )
 
     save_csv_folder = os.path.join(save_folder, args.path.split("/")[-1][:-4]+".csv")
     csv_file = open(save_csv_folder, 'w')
     csv_writer = csv.writer(csv_file, delimiter=",")
-    csv_writer.writerow(fps)
+    print(fps)
 
     frame_id = 0
     while True:
         ret_val, frame = cap.read()
         if ret_val:
-            outputs, img_info = predictor.inference(frame)
-            result_frame = predictor.visual(outputs[0], img_info, predictor.confthre)
-            if outputs[0] is not None:
-              csv_writer.writerow([frame_id, outputs[0][:,6].numpy()[0]])
-            if args.save_result:
-                vid_writer.write(result_frame)
-            ch = cv2.waitKey(1)
-            if ch == 27 or ch == ord("q") or ch == ord("Q"):
-                break
+            if frame_id%3 == 0:
+                outputs, img_info = predictor.inference(frame)
+                if outputs[0] is not None and outputs[0][:,6].numpy()[0] == 0:
+                    result_frame = predictor.visual(outputs[0], img_info, predictor.confthre)
+                    csv_writer.writerow([frame_id/3, outputs[0][:,6].numpy()[0]])
+                    if args.save_result:
+                        vid_writer.write(result_frame)
+                ch = cv2.waitKey(1)
+                if ch == 27 or ch == ord("q") or ch == ord("Q"):
+                    break
         else:
             break
         frame_id += 1
