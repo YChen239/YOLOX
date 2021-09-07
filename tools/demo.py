@@ -161,7 +161,7 @@ class Predictor(object):
             logger.info("Infer time: {:.4f}s".format(time.time() - t0))
         return outputs, img_info
 
-    def visual(self, output, img_info, cls_conf=0.35):
+    def visual(self, output, img_info, cls_conf=0.35, label=False):
         ratio = img_info["ratio"]
         img = img_info["raw_img"]
         if output is None:
@@ -177,6 +177,8 @@ class Predictor(object):
         scores = output[:, 4] * output[:, 5]
 
         vis_res = vis(img, bboxes, scores, cls, cls_conf, self.cls_names)
+        if label:
+            return vis_res, cls, bboxes
         return vis_res
 
 
@@ -232,13 +234,12 @@ def imageflow_demo(predictor, vis_folder, current_time, args):
             if frame_id%3 == 0:
                 outputs, img_info = predictor.inference(frame)
                 if outputs[0] is not None and outputs[0][:,6].numpy()[0] == 0:
-                    result_frame = predictor.visual(outputs[0], img_info, predictor.confthre)
-                    csv_writer.writerow(1)
+                    result_frame, clss, boxes = predictor.visual(outputs[0], img_info, predictor.confthre, label=True)
+                    csv_writer.writerow([frame_id/3, outputs[0][:,6].numpy()[0]])
                     if args.save_result:
                         vid_writer.write(result_frame)
                 elif args.save_result:
                     vid_writer.write(frame)
-                    csv_writer.writerow(0)
             ch = cv2.waitKey(1)
             if ch == 27 or ch == ord("q") or ch == ord("Q"):
                 break
