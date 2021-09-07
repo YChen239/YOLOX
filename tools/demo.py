@@ -224,7 +224,6 @@ def imageflow_demo(predictor, vis_folder, current_time, args):
     save_csv_folder = os.path.join(save_folder, args.path.split("/")[-1][:-4]+".csv")
     csv_file = open(save_csv_folder, 'w')
     csv_writer = csv.writer(csv_file, delimiter=",")
-    print(fps)
 
     frame_id = 0
     while True:
@@ -234,16 +233,19 @@ def imageflow_demo(predictor, vis_folder, current_time, args):
                 outputs, img_info = predictor.inference(frame)
                 if outputs[0] is not None and outputs[0][:,6].numpy()[0] == 0:
                     result_frame = predictor.visual(outputs[0], img_info, predictor.confthre)
-                    csv_writer.writerow([frame_id/3, outputs[0][:,6].numpy()[0]])
+                    csv_writer.writerow(1)
                     if args.save_result:
                         vid_writer.write(result_frame)
-                ch = cv2.waitKey(1)
-                if ch == 27 or ch == ord("q") or ch == ord("Q"):
-                    break
+                elif args.save_result:
+                    vid_writer.write(frame)
+                    csv_writer.writerow(0)
+            ch = cv2.waitKey(1)
+            if ch == 27 or ch == ord("q") or ch == ord("Q"):
+                break
         else:
+            csv_file.close()
             break
         frame_id += 1
-    csv_file.close()
 
 
 def main(exp, args):
