@@ -178,8 +178,25 @@ class Predictor(object):
 
         vis_res = vis(img, bboxes, scores, cls, cls_conf, self.cls_names)
         if label:
-            return vis_res, cls, bboxes
+            bboxesReturn = self.saveLabels(bboxes, scores, cls, cls_conf)
+            return vis_res, bboxesReturn
         return vis_res
+
+    def saveLabels(self, boxes, scores, cls, conf):
+        boxReturn = []
+        for i in range(len(boxes)):
+            if cls[i]==0:
+                box = boxes[i]
+                score = scores[i]
+                if score < conf:
+                    continue
+                x0 = int(box[0])
+                y0 = int(box[1])
+                x1 = int(box[2])
+                y1 = int(box[3])
+
+                boxReturn.append([x0,y0,x1,y1])
+        return boxReturn
 
 
 def image_demo(predictor, vis_folder, path, current_time, save_result):
@@ -205,48 +222,56 @@ def image_demo(predictor, vis_folder, path, current_time, save_result):
 
 
 def imageflow_demo(predictor, vis_folder, current_time, args):
-    cap = cv2.VideoCapture(args.path if args.demo == "video" else args.camid)
-    width = cap.get(cv2.CAP_PROP_FRAME_WIDTH)  # float
-    height = cap.get(cv2.CAP_PROP_FRAME_HEIGHT)  # float
-    fps = cap.get(cv2.CAP_PROP_FPS)
-    save_folder = os.path.join(
-        vis_folder, time.strftime("%Y_%m_%d_%H_%M_%S", current_time)
-    )
-
-    os.makedirs(save_folder, exist_ok=True)
-    if args.demo == "video":
-        save_path = os.path.join(save_folder, args.path.split("/")[-1])
+    if os.path.isdir(args.path):
+        files = get_image_list(args.path)
+        print(files)
     else:
-        save_path = os.path.join(save_folder, "camera.mp4")
-    logger.info(f"video save_path is {save_path}")
-    vid_writer = cv2.VideoWriter(
-        save_path, cv2.VideoWriter_fourcc(*"mp4v"), fps/3, (int(width), int(height))
-    )
+        files = [args.path]
+    files.sort()
+    for video_name in files:
 
-    save_csv_folder = os.path.join(save_folder, args.path.split("/")[-1][:-4]+".csv")
-    csv_file = open(save_csv_folder, 'w')
-    csv_writer = csv.writer(csv_file, delimiter=",")
+        cap = cv2.VideoCapture(video_name if args.demo == "video" else args.camid)
+        width = cap.get(cv2.CAP_PROP_FRAME_WIDTH)  # float
+        height = cap.get(cv2.CAP_PROP_FRAME_HEIGHT)  # float
+        fps = cap.get(cv2.CAP_PROP_FPS)
+        save_folder = os.path.join(
+            vis_folder, time.strftime("%Y_%m_%d_%H_%M_%S", current_time)
+        )
 
-    frame_id = 0
-    while True:
-        ret_val, frame = cap.read()
-        if ret_val:
-            if frame_id%3 == 0:
-                outputs, img_info = predictor.inference(frame)
-                if outputs[0] is not None and outputs[0][:,6].numpy()[0] == 0:
-                    result_frame, clss, boxes = predictor.visual(outputs[0], img_info, predictor.confthre, label=True)
-                    csv_writer.writerow([frame_id/3, outputs[0][:,6].numpy()[0]])
-                    if args.save_result:
-                        vid_writer.write(result_frame)
-                elif args.save_result:
-                    vid_writer.write(frame)
-            ch = cv2.waitKey(1)
-            if ch == 27 or ch == ord("q") or ch == ord("Q"):
-                break
+        os.makedirs(save_folder, exist_ok=True)
+        if args.demo == "video":
+            save_path = os.path.join(save_folder, video_name.split("/")[-1])
         else:
-            csv_file.close()
-            break
-        frame_id += 1
+            save_path = os.path.join(save_folder, "camera.mp4")
+        logger.info(f"video save_path is {save_path}")
+        vid_writer = cv2.VideoWriter(
+            save_path, cv2.VideoWriter_fourcc(*"mp4v"), fps/3, (int(width), int(height))
+        )
+
+        save_csv_folder = os.path.join(save_folder, video_name.split("/")[-1][:-4]+".csv")
+        csv_file = open(save_csv_folder, 'w')
+        csv_writer = csv.writer(csv_file, delimiter=",")
+
+        frame_id = 0
+        while True:
+            ret_val, frame = cap.read()
+            if ret_val:
+                if frame_id%3 == 0:
+                    outputs, img_info = predictor.inference(frame)
+                    if outputs[0] is not None and outputs[0][:,6].numpy()[0] == 0:
+                        result_frame, boxes = predictor.visual(outputs[0], img_info, predictor.confthre, label=True)
+                        csv_writer.writerow([frame_id/3, boxes])
+                        if args.save_result:
+                            vid_writer.write(result_frame)
+                    elif args.save_result:
+                        vid_writer.write(frame)
+                ch = cv2.waitKey(1)
+                if ch == 27 or ch == ord("q") or ch == ord("Q"):
+                    break
+            else:
+                csv_file.close()
+                break
+            frame_id += 1
 
 
 def main(exp, args):
