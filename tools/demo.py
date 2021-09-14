@@ -17,7 +17,7 @@ from yolox.data.datasets import COCO_CLASSES
 from yolox.exp import get_exp
 from yolox.utils import fuse_model, get_model_info, postprocess, vis
 
-IMAGE_EXT = [".jpg", ".jpeg", ".webp", ".bmp", ".png"]
+IMAGE_EXT = [".jpg", ".jpeg", ".webp", ".bmp", ".png", ".mp4"]
 
 
 def make_parser():
@@ -178,12 +178,13 @@ class Predictor(object):
 
         vis_res = vis(img, bboxes, scores, cls, cls_conf, self.cls_names)
         if label:
-            bboxesReturn = self.saveLabels(bboxes, scores, cls, cls_conf)
+            bboxesReturn, scoreReturn = self.saveLabels(bboxes, scores, cls, cls_conf)
             return vis_res, bboxesReturn
         return vis_res
 
     def saveLabels(self, boxes, scores, cls, conf):
         boxReturn = []
+        scoreReturn = []
         for i in range(len(boxes)):
             if cls[i]==0:
                 box = boxes[i]
@@ -196,7 +197,8 @@ class Predictor(object):
                 y1 = int(box[3])
 
                 boxReturn.append([x0,y0,x1,y1])
-        return boxReturn
+                scoreReturn.append(score)
+        return boxReturn, scoreReturn
 
 
 def image_demo(predictor, vis_folder, path, current_time, save_result):
@@ -224,7 +226,6 @@ def image_demo(predictor, vis_folder, path, current_time, save_result):
 def imageflow_demo(predictor, vis_folder, current_time, args):
     if os.path.isdir(args.path):
         files = get_image_list(args.path)
-        print(files)
     else:
         files = [args.path]
     files.sort()
@@ -259,8 +260,8 @@ def imageflow_demo(predictor, vis_folder, current_time, args):
                 if frame_id%3 == 0:
                     outputs, img_info = predictor.inference(frame)
                     if outputs[0] is not None and outputs[0][:,6].numpy()[0] == 0:
-                        result_frame, boxes = predictor.visual(outputs[0], img_info, predictor.confthre, label=True)
-                        csv_writer.writerow([frame_id/3, boxes])
+                        result_frame, boxes, scores = predictor.visual(outputs[0], img_info, predictor.confthre, cls_conf=0, label=True)
+                        csv_writer.writerow([frame_id/3, boxes, scores])
                         if args.save_result:
                             vid_writer.write(result_frame)
                     elif args.save_result:
