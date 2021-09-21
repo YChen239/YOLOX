@@ -161,7 +161,7 @@ class Predictor(object):
             logger.info("Infer time: {:.4f}s".format(time.time() - t0))
         return outputs, img_info
 
-    def visual(self, output, img_info, cls_conf=0.35, label=False):
+    def visual(self, output, img_info, cls_conf=0.35, label = False, video = False):
         ratio = img_info["ratio"]
         img = img_info["raw_img"]
         if output is None:
@@ -179,7 +179,7 @@ class Predictor(object):
         vis_res = vis(img, bboxes, scores, cls, cls_conf, self.cls_names)
         if label:
             bboxesReturn, scoreReturn = self.saveLabels(bboxes, scores, cls, cls_conf)
-            return vis_res, bboxesReturn
+            return vis_res, bboxesReturn, scoreReturn 
         return vis_res
 
     def saveLabels(self, boxes, scores, cls, conf):
@@ -195,6 +195,7 @@ class Predictor(object):
                 y0 = int(box[1])
                 x1 = int(box[2])
                 y1 = int(box[3])
+                score = float(score)
 
                 boxReturn.append([x0,y0,x1,y1])
                 scoreReturn.append(score)
@@ -260,11 +261,12 @@ def imageflow_demo(predictor, vis_folder, current_time, args):
                 if frame_id%3 == 0:
                     outputs, img_info = predictor.inference(frame)
                     if outputs[0] is not None and outputs[0][:,6].numpy()[0] == 0:
-                        result_frame, boxes, scores = predictor.visual(outputs[0], img_info, predictor.confthre, cls_conf=0, label=True)
+                        frame, boxes, scores = predictor.visual(outputs[0], img_info, predictor.confthre, label=True)
                         csv_writer.writerow([frame_id/3, boxes, scores])
-                        if args.save_result:
-                            vid_writer.write(result_frame)
-                    elif args.save_result:
+                        # if args.save_result:
+                        #     vid_writer.write(result_frame)
+                    print(args.save_result)
+                    if args.save_result:
                         vid_writer.write(frame)
                 ch = cv2.waitKey(1)
                 if ch == 27 or ch == ord("q") or ch == ord("Q"):
