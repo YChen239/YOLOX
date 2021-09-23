@@ -265,7 +265,6 @@ def imageflow_demo(predictor, vis_folder, current_time, args):
                         csv_writer.writerow([frame_id/3, boxes, scores])
                         # if args.save_result:
                         #     vid_writer.write(result_frame)
-                    print(args.save_result)
                     if args.save_result:
                         vid_writer.write(frame)
                 ch = cv2.waitKey(1)
