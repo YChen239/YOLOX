@@ -263,8 +263,8 @@ def imageflow_demo(predictor, vis_folder, current_time, args):
                     if outputs[0] is not None and outputs[0][:,6].numpy()[0] == 0:
                         frame, boxes, scores = predictor.visual(outputs[0], img_info, predictor.confthre, label=True)
                         csv_writer.writerow([frame_id/3, boxes, scores])
-                        # if args.save_result:
-                        #     vid_writer.write(result_frame)
+                        if args.save_result:
+                            vid_writer.write(result_frame)
                     if args.save_result:
                         vid_writer.write(frame)
                 ch = cv2.waitKey(1)
